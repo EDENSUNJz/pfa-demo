@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Aug 11 04:04:28 2025
+Created on Mon Aug 11 05:01:23 2025
 
 @author: Eden
 """
 
-# -*- coding: utf-8 -*-
+
+from __future__ import annotations
 import json, re
 from pathlib import Path
 from datetime import datetime
@@ -15,14 +16,17 @@ import pandas as pd
 import joblib
 import streamlit as st
 
-BASE_DIR = Path(r"C:\Users\Eden\Desktop\DissertationData\Dissertation_Artifacts\modeling_plus")
+
+BASE_DIR = Path(__file__).parent / "modeling_plus"
+
 
 try:
     cache_data = st.cache_data
     cache_resource = st.cache_resource
-except AttributeError:
+except AttributeError:  # 极老版本
     cache_data = st.cache
     cache_resource = st.cache
+
 
 ZH_LABELS = {
     "IMP_index": "冲动消费指数（目标）",
@@ -98,6 +102,7 @@ def en(name: str) -> str:
 def bi(name: str) -> str:
     return f"{zh(name)} / {en(name)}（{name}）"
 
+
 @cache_data(show_spinner=False)
 def load_json(p: Path):
     if not p.exists():
@@ -110,13 +115,11 @@ def load_json(p: Path):
     return None
 
 def find_model_path(exp_dir: Path):
-    for name in ["model.pkl","model.joblib","pipeline.pkl","clf.pkl","estimator.pkl"]:
+    for name in ["model.pkl", "model.joblib", "pipeline.pkl", "clf.pkl", "estimator.pkl"]:
         p = exp_dir / name
         if p.exists():
             return p
-    for p in exp_dir.glob("*.pkl"):
-        return p
-    for p in exp_dir.glob("*.joblib"):
+    for p in list(exp_dir.glob("*.pkl")) + list(exp_dir.glob("*.joblib")):
         return p
     return None
 
@@ -169,7 +172,9 @@ def infer_columns(exp_dir: Path, schema: dict, model):
     cols = []
     ranges0 = {}
     if isinstance(schema, dict):
-        for k in ["feature_order","columns","cols","features","feature_names","featureNames","input_columns","input_cols","fields","variables","predictors","X_columns","x_columns","raw_columns"]:
+        for k in ["feature_order","columns","cols","features","feature_names","featureNames",
+                  "input_columns","input_cols","fields","variables","predictors",
+                  "X_columns","x_columns","raw_columns"]:
             v = schema.get(k)
             if isinstance(v, list) and all(isinstance(x, str) for x in v) and len(v) > 0:
                 cols = v
@@ -192,24 +197,19 @@ def infer_columns(exp_dir: Path, schema: dict, model):
 
 def load_bundle(target: str):
     exp_dir = BASE_DIR / target / "export"
-    schema = load_json(exp_dir / "schema.json")
-    inter_map = load_json(exp_dir / "interactions.json")
+    schema = load_json(exp_dir / "schema.json") or {}
+    inter_map = load_json(exp_dir / "interactions.json") or {}
     errors = []
     if not exp_dir.exists():
         errors.append(f"{target}：导出目录不存在：{exp_dir}")
-    model_path = find_model_path(exp_dir)
     model = None
+    model_path = find_model_path(exp_dir)
     if model_path is None:
         errors.append(f"{target}：未在 {exp_dir} 找到模型文件")
     else:
         model, err = load_model_any(model_path)
         if model is None:
             errors.append(f"{target}：无法加载模型 {model_path.name} —— {err}")
-    if not isinstance(schema, dict):
-        schema = {}
-        errors.append(f"{target}：schema.json 缺失或损坏")
-    if not isinstance(inter_map, dict):
-        inter_map = {}
     cols, ranges = infer_columns(exp_dir, schema, model)
     if not cols:
         errors.append(f"{target}：无法从 schema、README 或模型中推断特征列表")
@@ -225,6 +225,7 @@ def load_bundle(target: str):
         "errors": errors,
         "export_dir": str(exp_dir),
     }
+
 
 def apply_interactions(X: pd.DataFrame, inter_map: dict):
     if not inter_map:
@@ -248,29 +249,41 @@ def make_input_row(schema_cols, user_vals: dict, inter_map: dict):
     X = pd.DataFrame([row])
     return apply_interactions(X, inter_map)
 
+
 def label_and_actions(task: str, y_pred: float):
     acts = []
     if task == "IMP_index":
         if y_pred <= -0.5:
             label = "冲动偏低（自控较好） / Low impulse"
-            acts = ["维持记录日常支出 / Keep expense logging", "保留发薪或大额提醒 / Keep payday & large-purchase alerts", "适度自我奖励 / Occasional self-reward"]
+            acts = ["维持记录日常支出 / Keep expense logging",
+                    "保留发薪或大额提醒 / Keep payday & large-purchase alerts",
+                    "适度自我奖励 / Occasional self-reward"]
         elif y_pred <= 0.5:
             label = "中等（可控区间） / Moderate"
-            acts = ["购物车等待 24 小时再决定 / 24h wait rule", "对高频诱因设上限 / Caps for frequent triggers", "每周复盘 5 笔最大或后悔支出 / Weekly review top-5 spends"]
+            acts = ["购物车等待 24 小时再决定 / 24h wait rule",
+                    "对高频诱因设上限 / Caps for frequent triggers",
+                    "每周复盘 5 笔最大或后悔支出 / Weekly review top-5 spends"]
         else:
             label = "冲动偏高（需要干预） / High impulse"
-            acts = ["先加购物车 24 小时后再决定 / Add-to-cart cooling-off", "情绪性消费用低成本替代 / Low-cost emotional substitutes", "锁定 1 个高频破功场景设置提醒与限额 / Target one trigger with limits"]
+            acts = ["先加购物车 24 小时后再决定 / Add-to-cart cooling-off",
+                    "情绪性消费用低成本替代 / Low-cost emotional substitutes",
+                    "锁定 1 个高频破功场景设置提醒与限额 / Target one trigger with limits"]
     else:
         if y_pred <= -0.3:
             label = "预算纪律较弱 / Weak discipline"
-            acts = ["只跟三类账本：餐饮/通勤/娱乐 / Track 3 core categories", "每周 10 分钟对照预算上限 / Weekly 10-min cap check", "储蓄改为发薪日自动扣款 / Auto-save on payday"]
+            acts = ["只跟三类账本：餐饮/通勤/娱乐 / Track 3 core categories",
+                    "每周 10 分钟对照预算上限 / Weekly 10-min cap check",
+                    "储蓄改为发薪日自动扣款 / Auto-save on payday"]
         elif y_pred <= 0.4:
             label = "预算纪律一般 / Moderate discipline"
-            acts = ["为各类支出设软上限 / Soft caps & alerts", "坚持一周复盘并给予小奖励 / Weekly review with small reward"]
+            acts = ["为各类支出设软上限 / Soft caps & alerts",
+                    "坚持一周复盘并给予小奖励 / Weekly review with small reward"]
         else:
             label = "预算纪律良好 / Strong discipline"
-            acts = ["维持现状 / Maintain", "总结 3 条个人黄金法则 / Write 3 golden rules"]
+            acts = ["维持现状 / Maintain",
+                    "总结 3 条个人黄金法则 / Write 3 golden rules"]
     return label, acts
+
 
 def ensure_dir(p: Path):
     try:
@@ -307,8 +320,23 @@ def save_feedback_csv(task, y_pred, label, easy, understand, trust, comment, inp
     except Exception as e:
         return False, str(e)
 
-st.set_page_config(page_title="Personal Finance Assistant (Demo)", layout="centered")
-st.title("AI 个人理财助手 · AI Personal Finance Assistant")
+
+def add_session_row_and_download(row: dict, button_key: str):
+    if "feedback_rows" not in st.session_state:
+        st.session_state["feedback_rows"] = []
+    st.session_state["feedback_rows"].append(row)
+    df_sess = pd.DataFrame(st.session_state["feedback_rows"])
+    st.download_button(
+        "作者下载（本会话）CSV",
+        df_sess.to_csv(index=False).encode("utf-8"),
+        file_name="feedback_session.csv",
+        mime="text/csv",
+        key=button_key
+    )
+
+
+st.set_page_config(page_title="Finance Assistant (Demo)", layout="centered")
+st.title("Finance Assistant")
 
 with st.expander("使用说明 / How to use", expanded=True):
     st.markdown("""
@@ -316,10 +344,9 @@ with st.expander("使用说明 / How to use", expanded=True):
 This page is for academic demo. It predicts two indices and returns lightweight advice.
 
 • IMP_index（冲动消费指数）/ higher → more impulsive  
-• BD_index（预算纪律指数）/ higher → stronger discipline
+• BD_index（预算纪律指数）/ higher → stronger discipline  
 
-仅用于研究，不采集可识别信息。你可选择简易模式或专家模式。可在结果后提交体验反馈，保存在导出目录的 feedback_log.csv。
-For research only, no personally identifiable data. Choose Simple or Expert mode. Optional UX feedback is saved to feedback_log.csv in the export folder.
+仅用于研究，不采集可识别信息。可在结果后提交体验反馈；在云端请使用“作者下载（本会话）CSV”导出数据。
 """)
 
 task = st.sidebar.selectbox("选择要测试的目标 / Choose target", ["IMP_index", "BD_index"], index=0)
@@ -339,6 +366,7 @@ export_dir = bundle["export_dir"]
 if not schema_cols:
     st.error("未能从导出内容推断特征列表 / Failed to infer feature list.")
     st.stop()
+
 
 st.header("简易模式 / Simple Mode")
 st.caption("填写少量关键问题；不确定可保持默认值（0≈平均）。Provide a few key inputs; 0 ≈ average.")
@@ -369,27 +397,40 @@ if st.button("用简易模式预测 / Predict (Simple)", type="primary"):
         st.stop()
     label, actions = label_and_actions(task, y_pred)
     st.success("预测完成 / Done")
-    st.metric("预测数值 / Predicted", f"{y_pred:.3f}")
-    st.metric("定性判断 / Interpretation", label)
+    c1, c2 = st.columns(2)
+    c1.metric("预测数值 / Predicted", f"{y_pred:.3f}")
+    c2.metric("定性判断 / Interpretation", label)
     with st.expander("建议清单 / Action list", expanded=True):
         for i, a in enumerate(actions, 1):
             st.write(f"{i}. {a}")
 
     st.divider()
     st.subheader("你的体验反馈（可选）/ Optional UX feedback")
-    c1, c2, c3 = st.columns(3)
-    easy = c1.slider("易用 / Ease (1~5)", 1, 5, 4)
-    understand = c2.slider("易懂 / Clarity (1~5)", 1, 5, 4)
-    trust = c3.slider("可信 / Trust (1~5)", 1, 5, 4)
-    comment = st.text_input("其他建议或吐槽 / Other comments")
+    cc1, cc2, cc3 = st.columns(3)
+    easy = cc1.slider("易用 / Ease (1~5)", 1, 5, 4, key="easy_simple")
+    understand = cc2.slider("易懂 / Clarity (1~5)", 1, 5, 4, key="understand_simple")
+    trust = cc3.slider("可信 / Trust (1~5)", 1, 5, 4, key="trust_simple")
+    comment = st.text_input("其他建议或吐槽 / Other comments", key="cmt_simple")
     if st.button("提交反馈（简易） / Submit feedback (Simple)"):
         ok, msg = save_feedback_csv(task, y_pred, label, easy, understand, trust, comment, user_simple, export_dir)
         if ok:
             st.success(f"反馈已保存 / Saved: {msg}")
         else:
-            st.error(f"保存失败 / Failed: {msg}")
+            st.warning(f"云端可能不持久保存，本地可用；错误：{msg}")
+        add_session_row_and_download(
+            {
+                "ts": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "task": task, "y_pred": float(y_pred), "label": label,
+                "easy": int(easy), "understand": int(understand), "trust": int(trust),
+                "comment": str(comment or ""),
+                "inputs_json": json.dumps(user_simple, ensure_ascii=False),
+                "mode": "simple"
+            },
+            button_key="dl_simple"
+        )
 
 st.divider()
+
 
 st.header("专家模式 / Expert Mode")
 st.caption("逐项可控；0 表示平均水平。Fine-grained control; 0 ≈ average.")
@@ -424,25 +465,37 @@ if st.button("用专家模式预测 / Predict (Expert)"):
             st.stop()
         label, actions = label_and_actions(task, y_pred)
     st.success("预测完成 / Done")
-    st.metric("预测数值 / Predicted", f"{y_pred:.3f}")
-    st.metric("定性判断 / Interpretation", label)
+    c1, c2 = st.columns(2)
+    c1.metric("预测数值 / Predicted", f"{y_pred:.3f}")
+    c2.metric("定性判断 / Interpretation", label)
     with st.expander("建议清单 / Action list", expanded=True):
         for i, a in enumerate(actions, 1):
             st.write(f"{i}. {a}")
 
     st.divider()
     st.subheader("你的体验反馈（可选）/ Optional UX feedback")
-    c1, c2, c3 = st.columns(3)
-    easy = c1.slider("易用 / Ease (1~5)", 1, 5, 4, key="easy2")
-    understand = c2.slider("易懂 / Clarity (1~5)", 1, 5, 4, key="understand2")
-    trust = c3.slider("可信 / Trust (1~5)", 1, 5, 4, key="trust2")
-    comment = st.text_input("其他建议或吐槽 / Other comments", key="cmt2")
+    dd1, dd2, dd3 = st.columns(3)
+    easy = dd1.slider("易用 / Ease (1~5)", 1, 5, 4, key="easy_adv")
+    understand = dd2.slider("易懂 / Clarity (1~5)", 1, 5, 4, key="understand_adv")
+    trust = dd3.slider("可信 / Trust (1~5)", 1, 5, 4, key="trust_adv")
+    comment = st.text_input("其他建议或吐槽 / Other comments", key="cmt_adv")
     if st.button("提交反馈（专家） / Submit feedback (Expert)"):
         ok, msg = save_feedback_csv(task, y_pred, label, easy, understand, trust, comment, user_adv, export_dir)
         if ok:
             st.success(f"反馈已保存 / Saved: {msg}")
         else:
-            st.error(f"保存失败 / Failed: {msg}")
+            st.warning(f"云端可能不持久保存，本地可用；错误：{msg}")
+        add_session_row_and_download(
+            {
+                "ts": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "task": task, "y_pred": float(y_pred), "label": label,
+                "easy": int(easy), "understand": int(understand), "trust": int(trust),
+                "comment": str(comment or ""),
+                "inputs_json": json.dumps(user_adv, ensure_ascii=False),
+                "mode": "expert"
+            },
+            button_key="dl_adv"
+        )
 
 st.divider()
-st.caption("© Junze Sun — WBS MSc Dissertation Demo · For research demo only; not financial advice.")
+st.caption("© WBS MSc Dissertation Demo · For research demo only; not financial advice.")
