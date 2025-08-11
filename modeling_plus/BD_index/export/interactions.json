@@ -1,0 +1,42 @@
+{
+  "INT__SAV_F2__x__Q7_yes": [
+    "SAV_F2",
+    "Q7_yes"
+  ],
+  "INT__SAV_F2__x__IMP_index": [
+    "SAV_F2",
+    "IMP_index"
+  ],
+  "INT__SAV_F2__x__EF4_score": [
+    "SAV_F2",
+    "EF4_score"
+  ],
+  "INT__SAV_F2__x__Q32_yes": [
+    "SAV_F2",
+    "Q32_yes"
+  ],
+  "INT__Q7_yes__x__IMP_index": [
+    "Q7_yes",
+    "IMP_index"
+  ],
+  "INT__Q7_yes__x__EF4_score": [
+    "Q7_yes",
+    "EF4_score"
+  ],
+  "INT__Q7_yes__x__Q32_yes": [
+    "Q7_yes",
+    "Q32_yes"
+  ],
+  "INT__IMP_index__x__EF4_score": [
+    "IMP_index",
+    "EF4_score"
+  ],
+  "INT__IMP_index__x__Q32_yes": [
+    "IMP_index",
+    "Q32_yes"
+  ],
+  "INT__EF4_score__x__Q32_yes": [
+    "EF4_score",
+    "Q32_yes"
+  ]
+}

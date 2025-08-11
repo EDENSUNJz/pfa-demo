@@ -1,0 +1,42 @@
+{
+  "target": "IMP_index",
+  "feature_order": [
+    "AFF_index",
+    "BD_F1",
+    "EF1_score",
+    "EF7_score",
+    "EF9_score",
+    "SAV_F1",
+    "SAV_F2",
+    "INT__EF7_score__x__EF9_score",
+    "INT__EF7_score__x__SAV_F1",
+    "INT__EF7_score__x__AFF_index",
+    "INT__EF7_score__x__BD_F1",
+    "INT__EF9_score__x__SAV_F1",
+    "INT__EF9_score__x__AFF_index",
+    "INT__EF9_score__x__BD_F1",
+    "INT__SAV_F1__x__AFF_index",
+    "INT__SAV_F1__x__BD_F1",
+    "INT__AFF_index__x__BD_F1"
+  ],
+  "base_features": [
+    "AFF_index",
+    "BD_F1",
+    "EF1_score",
+    "EF7_score",
+    "EF9_score",
+    "IMP_F1",
+    "SAV_F1",
+    "SAV_F2"
+  ],
+  "dropped_by_leak_guard": [
+    "IMP_F1"
+  ],
+  "model_kind": "hgbdt",
+  "best_model_name": "HistGBDT",
+  "best_params": {
+    "model__learning_rate": 0.03,
+    "model__max_depth": 5,
+    "model__max_leaf_nodes": 31
+  }
+}

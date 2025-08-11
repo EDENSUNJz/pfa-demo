@@ -1,0 +1,42 @@
+{
+  "INT__EF7_score__x__EF9_score": [
+    "EF7_score",
+    "EF9_score"
+  ],
+  "INT__EF7_score__x__SAV_F1": [
+    "EF7_score",
+    "SAV_F1"
+  ],
+  "INT__EF7_score__x__AFF_index": [
+    "EF7_score",
+    "AFF_index"
+  ],
+  "INT__EF7_score__x__BD_F1": [
+    "EF7_score",
+    "BD_F1"
+  ],
+  "INT__EF9_score__x__SAV_F1": [
+    "EF9_score",
+    "SAV_F1"
+  ],
+  "INT__EF9_score__x__AFF_index": [
+    "EF9_score",
+    "AFF_index"
+  ],
+  "INT__EF9_score__x__BD_F1": [
+    "EF9_score",
+    "BD_F1"
+  ],
+  "INT__SAV_F1__x__AFF_index": [
+    "SAV_F1",
+    "AFF_index"
+  ],
+  "INT__SAV_F1__x__BD_F1": [
+    "SAV_F1",
+    "BD_F1"
+  ],
+  "INT__AFF_index__x__BD_F1": [
+    "AFF_index",
+    "BD_F1"
+  ]
+}

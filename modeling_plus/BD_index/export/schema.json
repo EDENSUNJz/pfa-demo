@@ -1,0 +1,48 @@
+{
+  "target": "BD_index",
+  "feature_order": [
+    "AFF_index",
+    "EF1_score",
+    "EF4_score",
+    "EF7_score",
+    "EF9_score",
+    "IMP_index",
+    "INV_breadth_z",
+    "Q32_yes",
+    "Q7_yes",
+    "SAV_F2",
+    "INT__SAV_F2__x__Q7_yes",
+    "INT__SAV_F2__x__IMP_index",
+    "INT__SAV_F2__x__EF4_score",
+    "INT__SAV_F2__x__Q32_yes",
+    "INT__Q7_yes__x__IMP_index",
+    "INT__Q7_yes__x__EF4_score",
+    "INT__Q7_yes__x__Q32_yes",
+    "INT__IMP_index__x__EF4_score",
+    "INT__IMP_index__x__Q32_yes",
+    "INT__EF4_score__x__Q32_yes"
+  ],
+  "base_features": [
+    "AFF_index",
+    "BD_F1",
+    "EF1_score",
+    "EF4_score",
+    "EF7_score",
+    "EF9_score",
+    "IMP_index",
+    "INV_breadth_z",
+    "Q32_yes",
+    "Q7_yes",
+    "SAV_F2"
+  ],
+  "dropped_by_leak_guard": [
+    "BD_F1"
+  ],
+  "model_kind": "rf",
+  "best_model_name": "RandomForest",
+  "best_params": {
+    "model__max_depth": 6,
+    "model__max_features": "sqrt",
+    "model__min_samples_leaf": 5
+  }
+}
