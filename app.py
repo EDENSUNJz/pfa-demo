@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Aug 11 22:01:45 2025
+Created on Mon Aug 11 22:40:05 2025
 
 @author: Eden
 """
+
 
 
 import json, re, io, secrets
@@ -82,7 +83,8 @@ EN_LABELS = {
 
 THRESHOLDS_FALLBACK = {
     "IMP_index": (-0.10, 0.25),
-    "BD_index": (-0.10, 0.25),
+    # ——只改 BD 的兜底阈值：更容易分出三档——
+    "BD_index": (-0.20, 0.20),
 }
 
 def zh(name: str) -> str:
@@ -302,6 +304,38 @@ def append_row_to_csv(path: Path, row: dict):
     except Exception as e:
         return False, str(e)
 
+# ——BD 的温和校准：只在预测后、且仅对 BD_index 生效——
+def _calibrate_bd_score(y_pred: float, inputs: dict) -> float:
+    def g(name, default=0.0):
+        v = inputs.get(name, default)
+        try:
+            return float(v)
+        except Exception:
+            return default
+    aff = g("AFF_index")
+    ef1 = g("EF1_score")
+    ef4 = g("EF4_score")
+    ef7 = g("EF7_score")
+    ef9 = g("EF9_score")
+    inv = g("INV_breadth_z")
+    q32 = g("Q32_yes")
+    imp = g("IMP_index")
+
+    # 直觉分：正向（纪律更强）→ AFF/EF1/EF4/EF7/EF9/投资广度/Q32；负向 → 冲动（IMP）
+    score = (
+        0.28 * aff +
+        0.22 * ef1 +
+        0.18 * ef4 +
+        0.28 * ef7 +
+        0.12 * ef9 +
+        0.20 * inv +
+        0.20 * q32 +
+        (-0.35) * imp
+    )
+    score = float(np.tanh(score / 1.8))  # 压到 [-1,1] 内，避免过激
+    y_new = 0.5 * y_pred + 0.5 * score   # 与模型各占 50%
+    return y_new
+
 st.set_page_config(page_title="Personal Finance Assistant (Demo)", layout="centered")
 st.title("AI 个人理财助手 · AI Personal Finance Assistant")
 
@@ -353,6 +387,8 @@ if st.button("用简易模式预测 / Predict (Simple)", type="primary"):
     X = make_input_row(schema_cols, user_simple, inter_map)
     try:
         y_pred = float(model.predict(X)[0])
+        if task == "BD_index":
+            y_pred = _calibrate_bd_score(y_pred, user_simple)  # ——仅 BD：简易模式校准——
     except Exception as e:
         st.error(f"模型预测失败 / Prediction failed: {e}")
         st.stop()
@@ -398,6 +434,8 @@ if st.button("用专家模式预测 / Predict (Expert)"):
     X = make_input_row(schema_cols, user_adv, inter_map)
     try:
         y_pred = float(model.predict(X)[0])
+        if task == "BD_index":
+            y_pred = _calibrate_bd_score(y_pred, user_adv)  # ——仅 BD：专家模式校准——
     except Exception as e:
         st.error(f"模型预测失败 / Prediction failed: {e}")
         st.stop()
